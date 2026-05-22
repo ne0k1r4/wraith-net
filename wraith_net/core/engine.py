@@ -30,15 +30,16 @@ def _make_spinner(label: str) -> Progress:
 def run(target: str, modules: list = None, output_dir: str = None) -> dict:
     """
     Full pipeline: subdomain → portscan → techstack → breach → shodan →
-                   dns_security → takeover → risk_score → report
+                   intel → dns_security → takeover → risk_score → report
     """
     from wraith_net.modules import (subdomain, portscan, techstack, breach,
                                     shodan_feed, reporter, dns_security,
                                     takeover, risk_score)
+    from wraith_net.modules import intel
     from pathlib import Path
 
     all_modules = ["subdomains", "ports", "techstack", "breach", "shodan",
-                   "dns_security", "takeover", "risk", "report"]
+                   "intel", "dns_security", "takeover", "risk", "report"]
     if modules:
         active = [m for m in all_modules if m in modules]
     else:
@@ -53,13 +54,22 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
     # ── Subdomains ────────────────────────────────────────────────────────────
     if "subdomains" in active:
         section("MODULE 1 — Subdomain Enumeration")
+        axfr_flag  = getattr(run, "_axfr",  False)
+        brute_flag = getattr(run, "_brute", False)
         with _make_spinner("Querying passive DNS sources...") as p:
             p.add_task("")
-            result = subdomain.run(target, progress_cb=_cb)
+            result = subdomain.run(target, progress_cb=_cb,
+                                   axfr=axfr_flag, brute=brute_flag)
         all_results["subdomains"] = result
         ok(f"{result['count']} subdomains found")
         for src, count in result["sources"].items():
             info(f"{src}: {count}")
+        if result.get("axfr_vulnerable"):
+            warn(f"AXFR zone transfer ALLOWED — {len(result['axfr_found'])} records leaked!")
+            for sub in result["axfr_found"][:10]:
+                info(f"  {sub}")
+        if result.get("brute_found"):
+            ok(f"Brute force: {len(result['brute_found'])} new subdomains")
 
     # ── Port scan ─────────────────────────────────────────────────────────────
     if "ports" in active:
@@ -131,9 +141,47 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
         if result.get("shodan") and not result["shodan"].get("error"):
             ok(f"Shodan: org={result['shodan'].get('org')}, ASN={result['shodan'].get('asn')}")
 
+    # ── Threat Intelligence ───────────────────────────────────────────────────
+    if "intel" in active:
+        section("MODULE 6 — Threat Intelligence Correlation")
+        cfg = {}
+        try:
+            import json
+            from pathlib import Path as _P
+            cfg_file = _P.home() / ".wraith-net" / "config.json"
+            if cfg_file.exists():
+                cfg = json.loads(cfg_file.read_text())
+        except Exception:
+            pass
+        with _make_spinner("Correlating ASN, BGP, reverse IP, CT certs...") as p:
+            p.add_task("")
+            result = intel.run(target, config=cfg, progress_cb=_cb)
+        all_results["intel"] = result
+
+        for asn in result.get("asn_info", [])[:2]:
+            ok(f"IP: {asn.get('ip')} | ASN: {asn.get('asn')} | Org: {asn.get('org')}")
+            info(f"  Country: {asn.get('country')} | City: {asn.get('city')}")
+
+        rev = result.get("reverse_ip", [])
+        if rev:
+            info(f"Shared hosting: {len(rev)} co-hosted domain(s) on same IP")
+
+        certs = result.get("ct_certs", [])
+        if certs:
+            info(f"CT logs: {len(certs)} certificate(s) found")
+
+        gh = result.get("github_dorks", [])
+        if gh:
+            warn(f"GitHub: {len(gh)} public repo(s) expose domain-related data")
+            for g in gh[:3]:
+                warn(f"  {g['repo']} — {g['file']}")
+
+        for issue in result.get("issues", []):
+            warn(issue)
+
     # ── DNS Security ──────────────────────────────────────────────────────────
     if "dns_security" in active:
-        section("MODULE 6 — DNS & Email Security")
+        section("MODULE 7 — DNS & Email Security")
         with _make_spinner("Checking SPF / DMARC / DKIM / DNSSEC...") as p:
             p.add_task("")
             result = dns_security.run(target, progress_cb=_cb)
@@ -153,7 +201,7 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
             ok(f"DMARC: policy={dmarc.get('policy')}")
         else:
             policy_str = "missing" if not dmarc.get("present") else f"policy={dmarc.get('policy')}"
-            warn(f"DMARC: {policy_str}")
+        warn(f"DMARC: {policy_str}")
 
         if dkim.get("present"):
             ok(f"DKIM: {dkim.get('count')} selector(s) found")
@@ -170,9 +218,9 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
 
     # ── Subdomain Takeover ────────────────────────────────────────────────────
     if "takeover" in active:
-        section("MODULE 7 — Subdomain Takeover Detection")
+        section("MODULE 8 — Subdomain Takeover Detection")
         subs = all_results.get("subdomains", {}).get("subdomains", [])
-        sub_fqdns = [s if isinstance(s, str) else s.get("subdomain", "") for s in subs if s]
+        sub_fqdns = [s.get("subdomain", "") for s in subs if s.get("subdomain")]
         with _make_spinner(f"Checking {len(sub_fqdns) or 'common'} subdomains...") as p:
             p.add_task("")
             result = takeover.run(target, subdomains=sub_fqdns or None, progress_cb=_cb)
@@ -189,7 +237,7 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
 
     # ── Risk Score ────────────────────────────────────────────────────────────
     if "risk" in active:
-        section("MODULE 8 — Risk Assessment")
+        section("MODULE 9 — Risk Assessment")
         result = risk_score.run(target, all_results)
         all_results["risk"] = result
 
@@ -204,7 +252,7 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
 
     # ── Report ────────────────────────────────────────────────────────────────
     if "report" in active:
-        section("MODULE 9 — Strike Report")
+        section("MODULE 10 — Strike Report")
         out_path = Path(output_dir) if output_dir else None
         rpt = reporter.run(target, all_results, output_dir=out_path)
         all_results["report"] = rpt

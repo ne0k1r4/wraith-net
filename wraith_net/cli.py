@@ -30,7 +30,8 @@ Examples:
     scan.add_argument("target", help="Domain or IP to scan")
     scan.add_argument(
         "--modules", nargs="+",
-        choices=["subdomains", "ports", "techstack", "breach", "shodan", "report"],
+        choices=["subdomains", "ports", "techstack", "breach", "shodan",
+                 "intel", "dns_security", "takeover", "risk", "report"],
         default=None,
         help="Modules to run (default: all)",
     )
@@ -38,6 +39,18 @@ Examples:
     scan.add_argument(
         "--ports", default=None,
         help="Custom ports (comma-separated, e.g. 22,80,443)",
+    )
+    scan.add_argument(
+        "--axfr", action="store_true", default=False,
+        help="Attempt AXFR zone transfer against NS servers",
+    )
+    scan.add_argument(
+        "--brute-subs", action="store_true", default=False,
+        help="Brute force subdomains using built-in wordlist (120 entries)",
+    )
+    scan.add_argument(
+        "--wordlist", default=None,
+        help="Path to custom wordlist file for --brute-subs",
     )
 
     # quick — subdomains + ports + techstack only
@@ -90,6 +103,13 @@ def main():
                 sys.exit(1)
 
         try:
+            run._axfr  = getattr(args, "axfr", False)
+            run._brute = getattr(args, "brute_subs", False)
+            if getattr(args, "wordlist", None):
+                try:
+                    run._wordlist = open(args.wordlist).read().splitlines()
+                except Exception:
+                    run._wordlist = None
             run(target, modules=modules, output_dir=getattr(args, "output", None))
         except KeyboardInterrupt:
             console.print(f"\n[{S['warn']}]Interrupted.[/{S['warn']}]")

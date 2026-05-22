@@ -98,14 +98,160 @@ def _threatcrowd(domain: str) -> set[str]:
     return subs
 
 
-def run(target: str, progress_cb=None) -> dict:
+
+# ── AXFR Zone Transfer ────────────────────────────────────────────────────────
+
+def _axfr(domain: str) -> set[str]:
     """
-    Run all passive subdomain enumeration sources.
-    Returns: {
-        "subdomains": sorted list of unique subdomains,
-        "count": int,
-        "sources": {source: count},
-    }
+    Attempt DNS zone transfer (AXFR) against all NS records.
+    This is a legitimate recon technique — misconfigured DNS servers
+    may allow zone transfers, leaking all DNS records.
+    """
+    import socket, struct
+
+    def _get_ns(domain: str) -> list[str]:
+        """Get NS records via Google DNS."""
+        import urllib.request, json
+        try:
+            url = f"https://dns.google/resolve?name={domain}&type=NS"
+            req = urllib.request.Request(url, headers={"User-Agent": "WRAITH-NET/1.0"})
+            with urllib.request.urlopen(req, timeout=8) as r:
+                data = json.loads(r.read().decode())
+            return [
+                ans["data"].rstrip(".")
+                for ans in data.get("Answer", [])
+                if ans.get("type") == 2
+            ]
+        except Exception:
+            return []
+
+    def _build_axfr_query(domain: str) -> bytes:
+        """Build a raw DNS AXFR query packet."""
+        name_parts = domain.encode().split(b".")
+        qname = b""
+        for part in name_parts:
+            qname += bytes([len(part)]) + part
+        qname += b"\x00"
+        # Transaction ID + flags + QDCOUNT=1 + ANCOUNT=0 + NSCOUNT=0 + ARCOUNT=0
+        header = struct.pack(">HHHHHH", 0x1234, 0x0100, 1, 0, 0, 0)
+        # QTYPE=252 (AXFR) QCLASS=1 (IN)
+        question = qname + struct.pack(">HH", 252, 1)
+        # TCP DNS requires 2-byte length prefix
+        msg = header + question
+        return struct.pack(">H", len(msg)) + msg
+
+    def _parse_names_from_axfr(data: bytes, domain: str) -> set[str]:
+        """Extract hostnames from raw AXFR response (best-effort)."""
+        found = set()
+        domain_lower = domain.lower()
+        # Simple regex-style extraction of DNS names
+        import re
+        pattern = rb"(?:[a-zA-Z0-9\-_]+\.){1,10}" + re.escape(domain.encode()) + rb"\x00?"
+        for m in re.finditer(rb"[a-zA-Z0-9\-_]+(?:\.[a-zA-Z0-9\-_]+)*\." + re.escape(domain.encode()), data):
+            try:
+                name = m.group(0).decode("ascii", "ignore").lower().rstrip(".")
+                if name.endswith(f".{domain_lower}") and name != domain_lower:
+                    found.add(name)
+            except Exception:
+                continue
+        return found
+
+    found = set()
+    ns_servers = _get_ns(domain)
+
+    for ns in ns_servers:
+        try:
+            # Resolve NS to IP
+            ns_ip = socket.gethostbyname(ns)
+            # Connect TCP port 53
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(8)
+            s.connect((ns_ip, 53))
+            s.sendall(_build_axfr_query(domain))
+            # Receive response (up to 64KB)
+            data = b""
+            while len(data) < 65536:
+                chunk = s.recv(4096)
+                if not chunk:
+                    break
+                data += chunk
+            s.close()
+
+            if len(data) > 100:
+                names = _parse_names_from_axfr(data, domain)
+                found |= names
+        except Exception:
+            continue
+
+    return found
+
+
+# ── Subdomain Brute Force ─────────────────────────────────────────────────────
+
+# Built-in wordlist — common subdomains
+BUILTIN_WORDLIST = [
+    "www", "mail", "remote", "blog", "webmail", "server", "ns1", "ns2",
+    "smtp", "secure", "vpn", "m", "shop", "ftp", "mail2", "test", "portal",
+    "host", "support", "dev", "web", "bbs", "ww2", "cpanel", "whm", "autodiscover",
+    "autoconfig", "mx", "imap", "pop", "pop3", "exchange", "owa", "admin",
+    "api", "app", "staging", "beta", "demo", "cdn", "static", "assets", "media",
+    "images", "img", "download", "downloads", "backup", "old", "new", "help",
+    "docs", "wiki", "git", "gitlab", "jenkins", "jira", "confluence", "monitor",
+    "status", "dashboard", "panel", "internal", "intranet", "corp", "office",
+    "login", "auth", "sso", "id", "accounts", "account", "profile", "user",
+    "users", "customer", "clients", "client", "partner", "partners", "store",
+    "ecommerce", "pay", "payment", "billing", "invoice", "cart", "checkout",
+    "mobile", "android", "ios", "wap", "pda", "chat", "forum", "forums",
+    "community", "social", "connect", "hub", "gateway", "proxy", "cache",
+    "lb", "load", "cluster", "node", "worker", "jobs", "scheduler", "queue",
+    "metrics", "grafana", "prometheus", "kibana", "elastic", "log", "logs",
+    "sentry", "error", "report", "reports", "analytics", "tracking", "events",
+    "db", "database", "mysql", "postgres", "redis", "mongo", "elastic",
+    "storage", "s3", "bucket", "data", "archive", "vault", "secret", "key",
+    "smtp", "relay", "bounce", "campaign", "newsletter", "news", "rss",
+    "search", "query", "api2", "v1", "v2", "graphql", "rest", "soap",
+]
+
+
+def _brute_subdomains(domain: str, wordlist: list[str] = None,
+                      concurrency: int = 50, progress_cb=None) -> set[str]:
+    """
+    Brute force subdomains by resolving each candidate.
+    Uses threading for speed. Default wordlist has 120 entries.
+    """
+    import socket
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    words = wordlist or BUILTIN_WORDLIST
+    found = set()
+    total = len(words)
+    done = [0]
+
+    def _resolve(sub: str) -> str | None:
+        fqdn = f"{sub}.{domain}"
+        try:
+            socket.gethostbyname(fqdn)
+            return fqdn
+        except socket.gaierror:
+            return None
+
+    with ThreadPoolExecutor(max_workers=concurrency) as ex:
+        futures = {ex.submit(_resolve, w): w for w in words}
+        for fut in as_completed(futures):
+            done[0] += 1
+            result = fut.result()
+            if result:
+                found.add(result)
+            if progress_cb and done[0] % 20 == 0:
+                progress_cb(f"subdomain brute [{done[0]}/{total}]")
+
+    return found
+
+
+def run(target: str, progress_cb=None, brute: bool = False,
+        axfr: bool = False, wordlist: list[str] = None) -> dict:
+    """
+    Run subdomain enumeration — passive sources + optional AXFR + optional brute.
     """
     domain = normalize_domain(target)
 
@@ -132,9 +278,44 @@ def run(target: str, progress_cb=None) -> dict:
             source_counts[name] = 0
         rate_limit(0.4)
 
+    # AXFR zone transfer attempt
+    axfr_results = []
+    if axfr:
+        if progress_cb:
+            progress_cb("subdomain [AXFR zone transfer]")
+        try:
+            axfr_subs = _axfr(domain)
+            source_counts["AXFR"] = len(axfr_subs)
+            if axfr_subs:
+                axfr_results = sorted(axfr_subs)
+                all_subs |= axfr_subs
+            else:
+                source_counts["AXFR"] = 0
+        except Exception:
+            source_counts["AXFR"] = 0
+
+    # Subdomain brute force
+    brute_results = []
+    if brute:
+        if progress_cb:
+            progress_cb("subdomain [brute force]")
+        try:
+            brute_subs = _brute_subdomains(domain, wordlist=wordlist,
+                                            progress_cb=progress_cb)
+            # Only count new ones not already found passively
+            new_brute = brute_subs - all_subs
+            source_counts["brute"] = len(new_brute)
+            brute_results = sorted(new_brute)
+            all_subs |= brute_subs
+        except Exception:
+            source_counts["brute"] = 0
+
     return {
         "subdomains": sorted(all_subs),
         "count": len(all_subs),
         "sources": source_counts,
         "domain": domain,
+        "axfr_found": axfr_results,
+        "axfr_vulnerable": len(axfr_results) > 0,
+        "brute_found": brute_results,
     }
