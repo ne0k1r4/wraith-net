@@ -29,12 +29,16 @@ def _make_spinner(label: str) -> Progress:
 
 def run(target: str, modules: list = None, output_dir: str = None) -> dict:
     """
-    Full pipeline: subdomain → portscan → techstack → breach → shodan → report
+    Full pipeline: subdomain → portscan → techstack → breach → shodan →
+                   dns_security → takeover → risk_score → report
     """
-    from wraith_net.modules import subdomain, portscan, techstack, breach, shodan_feed, reporter
+    from wraith_net.modules import (subdomain, portscan, techstack, breach,
+                                    shodan_feed, reporter, dns_security,
+                                    takeover, risk_score)
     from pathlib import Path
 
-    all_modules = ["subdomains", "ports", "techstack", "breach", "shodan", "report"]
+    all_modules = ["subdomains", "ports", "techstack", "breach", "shodan",
+                   "dns_security", "takeover", "risk", "report"]
     if modules:
         active = [m for m in all_modules if m in modules]
     else:
@@ -127,9 +131,80 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
         if result.get("shodan") and not result["shodan"].get("error"):
             ok(f"Shodan: org={result['shodan'].get('org')}, ASN={result['shodan'].get('asn')}")
 
+    # ── DNS Security ──────────────────────────────────────────────────────────
+    if "dns_security" in active:
+        section("MODULE 6 — DNS & Email Security")
+        with _make_spinner("Checking SPF / DMARC / DKIM / DNSSEC...") as p:
+            p.add_task("")
+            result = dns_security.run(target, progress_cb=_cb)
+        all_results["dns_security"] = result
+
+        spf   = result.get("spf", {})
+        dmarc = result.get("dmarc", {})
+        dkim  = result.get("dkim", {})
+        dnssec = result.get("dnssec", {})
+
+        if spf.get("present") and spf.get("score", 0) >= 2:
+            ok(f"SPF: {spf.get('record','')[:60]}")
+        else:
+            warn(f"SPF: {'missing' if not spf.get('present') else 'misconfigured'}")
+
+        if dmarc.get("present") and dmarc.get("score", 0) >= 2:
+            ok(f"DMARC: policy={dmarc.get('policy')}")
+        else:
+            policy_str = "missing" if not dmarc.get("present") else f"policy={dmarc.get('policy')}"
+        warn(f"DMARC: {policy_str}")
+
+        if dkim.get("present"):
+            ok(f"DKIM: {dkim.get('count')} selector(s) found")
+        else:
+            warn("DKIM: no selectors found")
+
+        if dnssec.get("enabled"):
+            ok("DNSSEC: enabled")
+        else:
+            warn("DNSSEC: not enabled")
+
+        for issue in result.get("issues", [])[:5]:
+            warn(issue)
+
+    # ── Subdomain Takeover ────────────────────────────────────────────────────
+    if "takeover" in active:
+        section("MODULE 7 — Subdomain Takeover Detection")
+        subs = all_results.get("subdomains", {}).get("subdomains", [])
+        sub_fqdns = [s.get("subdomain", "") for s in subs if s.get("subdomain")]
+        with _make_spinner(f"Checking {len(sub_fqdns) or 'common'} subdomains...") as p:
+            p.add_task("")
+            result = takeover.run(target, subdomains=sub_fqdns or None, progress_cb=_cb)
+        all_results["takeover"] = result
+
+        if result["vuln_count"]:
+            for v in result["vulnerable"]:
+                warn(f"VULNERABLE: {v['fqdn']} → {v['service']} ({v['cname']})")
+        elif result["possible_count"]:
+            for v in result["possible"][:3]:
+                info(f"POSSIBLE: {v['fqdn']} → {v['service']}")
+        else:
+            ok(f"No takeover vulnerabilities found ({result['subdomains_checked']} checked)")
+
+    # ── Risk Score ────────────────────────────────────────────────────────────
+    if "risk" in active:
+        section("MODULE 8 — Risk Assessment")
+        result = risk_score.run(target, all_results)
+        all_results["risk"] = result
+
+        grade = result["grade"]
+        level = result["level"]
+        color = result["color"]
+        console.print(f"\n  Risk Grade: [{color}]{grade}[/{color}]  "
+                      f"[{color}]{level}[/{color}]  "
+                      f"(score {result['raw_score']}/{result['max_score']})\n")
+        for issue in result["issues"][:10]:
+            warn(issue) if "CONFIRMED" in issue or "No " in issue else info(issue)
+
     # ── Report ────────────────────────────────────────────────────────────────
     if "report" in active:
-        section("MODULE 6 — Strike Report")
+        section("MODULE 9 — Strike Report")
         out_path = Path(output_dir) if output_dir else None
         rpt = reporter.run(target, all_results, output_dir=out_path)
         all_results["report"] = rpt
