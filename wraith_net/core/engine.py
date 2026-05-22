@@ -201,7 +201,7 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
             ok(f"DMARC: policy={dmarc.get('policy')}")
         else:
             policy_str = "missing" if not dmarc.get("present") else f"policy={dmarc.get('policy')}"
-        warn(f"DMARC: {policy_str}")
+            warn(f"DMARC: {policy_str}")
 
         if dkim.get("present"):
             ok(f"DKIM: {dkim.get('count')} selector(s) found")
@@ -220,7 +220,7 @@ def run(target: str, modules: list = None, output_dir: str = None) -> dict:
     if "takeover" in active:
         section("MODULE 8 — Subdomain Takeover Detection")
         subs = all_results.get("subdomains", {}).get("subdomains", [])
-        sub_fqdns = [s.get("subdomain", "") for s in subs if s.get("subdomain")]
+        sub_fqdns = [s if isinstance(s, str) else s.get("subdomain", "") for s in subs if s]
         with _make_spinner(f"Checking {len(sub_fqdns) or 'common'} subdomains...") as p:
             p.add_task("")
             result = takeover.run(target, subdomains=sub_fqdns or None, progress_cb=_cb)
