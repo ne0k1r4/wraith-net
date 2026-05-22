@@ -15,23 +15,29 @@ def calculate_risk(results: dict) -> tuple[float, list[str]]:
     score = 0.0
     findings = []
 
-    # Subdomains
+    # Subdomains — large count is informational, not inherently risky
     sub_count = results.get("subdomains", {}).get("count", 0)
-    score += sub_count * 0.5
-    if sub_count > 20:
+    if sub_count > 100:
+        score += 5
+        findings.append(f"⚠ Large attack surface: {sub_count} subdomains discovered")
+    elif sub_count > 30:
+        score += 2
         findings.append(f"⚠ Large attack surface: {sub_count} subdomains discovered")
 
-    # Open ports
+    # Open ports — only truly dangerous ones score high
     ports = results.get("ports", {}).get("open_ports", [])
+    HIGH_RISK_PORTS  = {23, 3389, 5900, 445}   # telnet, rdp, vnc, smb
+    MED_RISK_PORTS   = {22, 3306, 27017, 9200, 6379, 5432, 1433}  # ssh, dbs
     for p in ports:
         port_num = p.get("port", 0)
-        if port_num in {22, 23, 3389, 5900, 445, 3306, 27017, 9200, 6379}:
-            score += 5
-            findings.append(f"🔴 Sensitive port exposed: {port_num}/{p.get('service','?')}")
-        else:
-            score += 1
+        if port_num in HIGH_RISK_PORTS:
+            score += 10
+            findings.append(f"🔴 High-risk port exposed: {port_num}/{p.get('service','?')}")
+        elif port_num in MED_RISK_PORTS:
+            score += 3
+            findings.append(f"⚠ Sensitive port exposed: {port_num}/{p.get('service','?')}")
 
-    # Breach data
+    # Breach data — high impact
     breach = results.get("breach", {})
     b_count = breach.get("total_breaches", 0)
     score += b_count * 10
@@ -41,24 +47,50 @@ def calculate_risk(results: dict) -> tuple[float, list[str]]:
         score += len(breach["pastes"]) * 3
         findings.append(f"⚠ {len(breach['pastes'])} paste(s) referencing target")
 
-    # Known CVEs
+    # Known CVEs — critical signal
     vuln_count = results.get("shodan", {}).get("vuln_count", 0)
     score += vuln_count * 12
     vulns = results.get("shodan", {}).get("known_vulns", [])
     for v in vulns:
         findings.append(f"🔴 Known CVE: {v}")
 
+    # DNS security — moderate weight
+    dns = results.get("dns_security", {})
+    if dns:
+        if not dns.get("spf", {}).get("present"):
+            score += 5
+            findings.append("⚠ No SPF record — domain spoofing possible")
+        if not dns.get("dmarc", {}).get("present"):
+            score += 5
+            findings.append("⚠ No DMARC record — phishing undetected")
+        elif dns.get("dmarc", {}).get("policy") == "none":
+            score += 2
+            findings.append("⚠ DMARC policy=none — monitoring only")
+        if not dns.get("dkim", {}).get("present"):
+            score += 3
+            findings.append("⚠ No DKIM selector found")
+
+    # Takeover — critical if confirmed
+    takeover = results.get("takeover", {})
+    if takeover.get("vuln_count", 0) > 0:
+        score += takeover["vuln_count"] * 15
+        for v in takeover.get("vulnerable", []):
+            findings.append(f"🔴 Subdomain takeover: {v['fqdn']} → {v['service']}")
+    elif takeover.get("possible_count", 0) > 0:
+        score += takeover["possible_count"] * 3
+        findings.append(f"⚠ {takeover['possible_count']} possible takeover(s) — verify manually")
+
     # Tech stack
     tech = results.get("techstack", {})
     if tech.get("waf") is None:
-        score += 5
+        score += 3
         findings.append("⚠ No WAF detected — unprotected origin")
     else:
         findings.append(f"ℹ WAF detected: {tech.get('waf')}")
 
     cms = tech.get("cms")
     if cms:
-        score += 3
+        score += 2
         findings.append(f"ℹ CMS: {cms} — check for known vulns")
 
     ssl_data = tech.get("ssl", {})
@@ -70,12 +102,16 @@ def calculate_risk(results: dict) -> tuple[float, list[str]]:
 
 
 def _risk_label(score: float) -> str:
-    if score >= 50:
+    if score >= 40:
         return "CRITICAL"
-    elif score >= 30:
+    elif score >= 25:
         return "HIGH"
-    elif score >= 15:
+    elif score >= 10:
         return "MEDIUM"
+    elif score >= 3:
+        return "LOW"
+    else:
+        return "CLEAN"
     return "LOW"
 
 
