@@ -77,7 +77,7 @@ def calculate_risk(results: dict) -> tuple[float, list[str]]:
         for v in takeover.get("vulnerable", []):
             findings.append(f"🔴 Subdomain takeover: {v['fqdn']} → {v['service']}")
     elif takeover.get("possible_count", 0) > 0:
-        score += takeover["possible_count"] * 3
+        score += 2
         findings.append(f"⚠ {takeover['possible_count']} possible takeover(s) — verify manually")
 
     # Tech stack
