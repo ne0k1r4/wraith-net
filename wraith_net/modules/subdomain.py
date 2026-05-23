@@ -101,7 +101,7 @@ def _threatcrowd(domain: str) -> set[str]:
 
 # ── AXFR Zone Transfer ────────────────────────────────────────────────────────
 
-def _axfr(domain: str) -> set[str]:
+def _axfr(domain: str, ns_override: str = None) -> set[str]:
     """
     Attempt DNS zone transfer (AXFR) against all NS records.
     This is a legitimate recon technique — misconfigured DNS servers
@@ -230,7 +230,7 @@ def _axfr(domain: str) -> set[str]:
         return found
 
     found = set()
-    ns_servers = _get_ns(domain)
+    ns_servers = [ns_override] if ns_override else _get_ns(domain)
 
     for ns in ns_servers:
         try:
