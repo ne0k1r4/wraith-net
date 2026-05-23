@@ -140,20 +140,93 @@ def _axfr(domain: str) -> set[str]:
         msg = header + question
         return struct.pack(">H", len(msg)) + msg
 
+    def _parse_dns_name(data: bytes, offset: int) -> tuple[str, int]:
+        """Parse DNS wire-format name, handle compression pointers."""
+        labels = []
+        visited = set()
+        while offset < len(data):
+            if offset in visited:
+                break
+            visited.add(offset)
+            length = data[offset]
+            if length == 0:
+                offset += 1
+                break
+            elif length & 0xC0 == 0xC0:  # compression pointer
+                if offset + 1 >= len(data):
+                    break
+                ptr = ((length & 0x3F) << 8) | data[offset + 1]
+                name, _ = _parse_dns_name(data, ptr)
+                labels.append(name)
+                offset += 2
+                break
+            else:
+                offset += 1
+                try:
+                    labels.append(data[offset:offset + length].decode("ascii", "ignore"))
+                except Exception:
+                    pass
+                offset += length
+        return ".".join(labels).rstrip("."), offset
+
     def _parse_names_from_axfr(data: bytes, domain: str) -> set[str]:
-        """Extract hostnames from raw AXFR response (best-effort)."""
+        """Parse all DNS names from raw AXFR TCP response."""
         found = set()
+        pos   = 0
         domain_lower = domain.lower()
-        # Simple regex-style extraction of DNS names
-        import re
-        pattern = rb"(?:[a-zA-Z0-9\-_]+\.){1,10}" + re.escape(domain.encode()) + rb"\x00?"
-        for m in re.finditer(rb"[a-zA-Z0-9\-_]+(?:\.[a-zA-Z0-9\-_]+)*\." + re.escape(domain.encode()), data):
+
+        while pos < len(data) - 2:
             try:
-                name = m.group(0).decode("ascii", "ignore").lower().rstrip(".")
-                if name.endswith(f".{domain_lower}") and name != domain_lower:
-                    found.add(name)
+                msg_len = struct.unpack(">H", data[pos:pos + 2])[0]
+                pos += 2
+                if msg_len == 0 or pos + msg_len > len(data):
+                    break
+                msg = data[pos:pos + msg_len]
+                pos += msg_len
+
+                if len(msg) < 12:
+                    continue
+
+                ancount = struct.unpack(">H", msg[6:8])[0]
+                arcount = struct.unpack(">H", msg[10:12])[0]
+
+                # Skip question section
+                qpos = 12
+                try:
+                    _, qpos = _parse_dns_name(msg, qpos)
+                    qpos += 4  # QTYPE + QCLASS
+                except Exception:
+                    continue
+
+                # Parse answer records
+                for _ in range(ancount + arcount):
+                    if qpos + 10 > len(msg):
+                        break
+                    try:
+                        name, qpos = _parse_dns_name(msg, qpos)
+                        if qpos + 10 > len(msg):
+                            break
+                        rtype, rclass, ttl, rdlen = struct.unpack(">HHIH", msg[qpos:qpos + 10])
+                        qpos += 10
+                        # Collect valid subdomains
+                        name_lower = name.lower().rstrip(".")
+                        if (name_lower.endswith(f".{domain_lower}")
+                                and name_lower != domain_lower
+                                and len(name_lower) > 0):
+                            found.add(name_lower)
+                        # Also parse RDATA names (CNAME, NS, MX, etc.)
+                        if rtype in (5, 2, 15) and qpos + rdlen <= len(msg):
+                            rdata_name, _ = _parse_dns_name(msg, qpos)
+                            rdata_lower = rdata_name.lower().rstrip(".")
+                            if (rdata_lower.endswith(f".{domain_lower}")
+                                    and rdata_lower != domain_lower):
+                                found.add(rdata_lower)
+                        qpos += rdlen
+                    except Exception:
+                        break
             except Exception:
-                continue
+                break
+
         return found
 
     found = set()
