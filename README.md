@@ -1,187 +1,259 @@
-# WRAITH-NET
+<div align="center">
 
 ```
- ██╗    ██╗██████╗  █████╗ ██╗████████╗██╗  ██╗      ███╗   ██╗███████╗████████╗
- ██║    ██║██╔══██╗██╔══██╗██║╚══██╔══╝██║  ██║      ████╗  ██║██╔════╝╚══██╔══╝
- ██║ █╗ ██║██████╔╝███████║██║   ██║   ███████║█████╗██╔██╗ ██║█████╗     ██║
- ██║███╗██║██╔══██╗██╔══██║██║   ██║   ██╔══██║╚════╝██║╚██╗██║██╔══╝     ██║
- ╚███╔███╔╝██║  ██║██║  ██║██║   ██║   ██║  ██║      ██║ ╚████║███████╗   ██║
-  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝   ╚═╝   ╚═╝  ╚═╝      ╚═╝  ╚═══╝╚══════╝   ╚═╝
+██╗    ██╗██████╗  █████╗ ██╗████████╗██╗  ██╗      ███╗   ██╗███████╗████████╗
+██║    ██║██╔══██╗██╔══██╗██║╚══██╔══╝██║  ██║      ████╗  ██║██╔════╝╚══██╔══╝
+██║ █╗ ██║██████╔╝███████║██║   ██║   ███████║█████╗██╔██╗ ██║█████╗     ██║
+██║███╗██║██╔══██╗██╔══██║██║   ██║   ██╔══██║╚════╝██║╚██╗██║██╔══╝     ██║
+╚███╔███╔╝██║  ██║██║  ██║██║   ██║   ██║  ██║      ██║ ╚████║███████╗   ██║
+ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝   ╚═╝   ╚═╝  ╚═╝      ╚═╝  ╚═══╝╚══════╝   ╚═╝
 ```
 
-> **Attack Surface Intelligence Framework**
-> Developed by **Light (Neok1ra)**
+[![Version](https://img.shields.io/badge/version-1.0.0-cc0000?style=for-the-badge&labelColor=0a0000)](https://github.com/ne0k1r4/wraith-net)
+[![Python](https://img.shields.io/badge/python-3.10+-cc0000?style=for-the-badge&logo=python&logoColor=white&labelColor=0a0000)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-cc0000?style=for-the-badge&labelColor=0a0000)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Linux-cc0000?style=for-the-badge&labelColor=0a0000)](https://archlinux.org)
+[![Author](https://img.shields.io/badge/author-ne0k1r4-cc0000?style=for-the-badge&labelColor=0a0000)](https://github.com/ne0k1r4)
+
+**Attack Surface Intelligence Framework**  
+10-module passive + active recon pipeline · ASN/BGP · DNS security · GitHub dorking · Risk scoring
+
+</div>
 
 ---
 
 ## Overview
 
-WRAITH-NET is a passive + active attack surface mapper. Give it a domain — it returns a full pre-engagement intelligence report: subdomains, exposed ports, tech stack, leaked credentials, and CVEs from Shodan.
-
-Designed to bridge **GhostRecon** (passive OSINT) and **LightScan v2.0 PHANTOM** (active scanner) into a single unified pre-engagement pipeline.
-
----
-
-## Modules
-
-| # | Module | Description | Requires Key? |
-|---|--------|-------------|---------------|
-| 1 | `subdomains` | Passive subdomain enum (crt.sh, HackerTarget, AlienVault, RapidDNS, BufferOver, ThreatCrowd) | No |
-| 2 | `ports` | Port/service discovery + banner grabbing (LightScan hook or built-in async) | No |
-| 3 | `techstack` | HTTP header + body fingerprinting, WAF detect, SSL info, CMS detection | No |
-| 4 | `breach` | HIBP breach lookup, IntelX leaks, LeakLookup, paste search | Optional |
-| 5 | `shodan` | Shodan InternetDB (free) + Shodan API + Censys host intel | Optional |
-| 6 | `report` | Strike report — Markdown, JSON, HTML (Death Note themed) | No |
-
----
-
-## Installation
+WRAITH-NET is a comprehensive attack surface intelligence framework that correlates data from multiple sources into a single scored risk report. It goes beyond simple subdomain enumeration — combining passive OSINT, active DNS probing, threat intelligence, email security auditing, and infrastructure correlation.
 
 ```bash
-# Clone
-git clone git@github.com:ne0k1r4/wraith-net.git
-cd wraith-net
-
-# Install (no virtualenv needed)
-pip install -e . --break-system-packages
+wraith-net scan target.com
+wraith-net scan target.com --axfr --brute-subs
+wraith-net scan target.com --modules intel dns_security takeover
 ```
+
+---
+
+## 10-Module Pipeline
+
+| # | Module | Type | Description |
+|---|--------|------|-------------|
+| 1 | **Subdomains** | Passive + Active | 6 OSINT sources · AXFR zone transfer · brute force |
+| 2 | **Ports** | Active | Async TCP scan · banner grabbing · LightScan integration |
+| 3 | **Techstack** | Passive | Server · WAF · CMS · SSL · framework fingerprinting |
+| 4 | **Breach** | Passive | HIBP · IntelX · LeakLookup credential exposure |
+| 5 | **Shodan** | Passive | InternetDB · Shodan · Censys host intelligence |
+| 6 | **Intel** | Passive | ASN/BGP · reverse IP · CT certs · IP reputation · GitHub dorking |
+| 7 | **DNS Security** | Active | SPF · DMARC · DKIM · DNSSEC · MX STARTTLS |
+| 8 | **Takeover** | Active | 30-service CNAME fingerprinting · dangling subdomain detection |
+| 9 | **Risk Score** | Analysis | Calibrated A–F grade across all module findings |
+| 10 | **Report** | Output | Markdown · JSON · HTML dashboard with charts |
+
+---
+
+## Install
+
+```bash
+git clone https://github.com/ne0k1r4/wraith-net
+cd wraith-net
+pip install -e .
+```
+
+Zero hard dependencies — pure Python stdlib core.
 
 ---
 
 ## Usage
 
-### Full scan
 ```bash
-wraith-net scan example.com
-```
+# Full scan (all 10 modules)
+wraith-net scan target.com
 
-### Quick scan (no breach/shodan — fast)
-```bash
-wraith-net quick example.com
-```
+# Full scan with active DNS
+wraith-net scan target.com --axfr --brute-subs
 
-### Selective modules
-```bash
-wraith-net scan example.com --modules subdomains ports techstack report
-```
+# Specific modules only
+wraith-net scan target.com --modules subdomains ports techstack
 
-### Custom ports
-```bash
-wraith-net scan example.com --ports 22,80,443,8080,3306
-```
+# Custom output directory
+wraith-net scan target.com -o /tmp/reports
 
-### Custom output directory
-```bash
-wraith-net scan example.com --output ~/ops/reports/
-```
+# Quick scan (subdomains + ports + techstack)
+wraith-net quick target.com
 
-### Regenerate report from existing JSON
-```bash
-wraith-net report ~/.wraith-net/reports/wraith_example_com_20260322.json
+# Re-render report from saved JSON
+wraith-net report /path/to/result.json
 ```
 
 ---
 
-## API Keys (Optional)
+## Module Details
 
-Set via environment variables. Without keys, the tool still works — it uses free sources.
+<details>
+<summary><b>Module 1 — Subdomain Enumeration</b></summary>
+<br>
+
+**Passive sources (6):**
+- crt.sh — Certificate Transparency logs
+- HackerTarget — passive DNS database
+- AlienVault OTX — threat intelligence
+- RapidDNS — passive DNS
+- BufferOver — DNS over HTTP
+- ThreatCrowd — threat intelligence graph
+
+**Active sources (2):**
+- AXFR zone transfer — attempts TCP DNS zone transfer against all NS servers
+- Brute force — 155-entry built-in wordlist, custom wordlist support, concurrent resolution
 
 ```bash
-# Add to ~/.zshrc
-export SHODAN_API_KEY="your_key"
-export CENSYS_API_ID="your_id"
-export CENSYS_API_SECRET="your_secret"
-export HIBP_API_KEY="your_key"
-export INTELX_API_KEY="your_key"
-export OTX_API_KEY="your_key"
+wraith-net scan target.com --axfr --brute-subs
+wraith-net scan target.com --brute-subs --wordlist /path/to/wordlist.txt
 ```
+
+</details>
+
+<details>
+<summary><b>Module 6 — Threat Intelligence Correlation</b></summary>
+<br>
+
+- **ASN/BGP** — autonomous system, organization, country, city, IP prefix via ipinfo.io
+- **BGP peers** — ASN name, description, RIR, abuse contact via bgpview.io
+- **ASN prefixes** — all IP ranges announced by the target's ASN
+- **Reverse IP** — co-hosted domains on same IP via HackerTarget
+- **Certificate Transparency** — historical SSL certs from crt.sh
+- **IP reputation** — offline blocklist (TOR exits, known malicious ranges, C2 ranges)
+- **TOR exit check** — live DNS lookup against torproject.org DNSEL
+- **GitHub dorking** — searches public repos for exposed credentials/tokens referencing target domain
+- **VirusTotal** — domain reputation (optional API key)
+
+</details>
+
+<details>
+<summary><b>Module 7 — DNS & Email Security</b></summary>
+<br>
+
+| Check | What it detects |
+|-------|----------------|
+| SPF | Missing, `+all` (open), `~all` (softfail), too many lookups, deprecated `ptr` |
+| DMARC | Missing, `p=none` (no enforcement), missing `rua=`, subdomain policy gaps |
+| DKIM | Probes 18 common selectors, flags weak key length and SHA-1 usage |
+| DNSSEC | Checks DNSKEY records and AD bit via Google DNS |
+| MX | STARTTLS banner grab on port 25, unusual TLD detection |
+
+Risk score contribution: up to +6 for completely missing email security.
+
+</details>
+
+<details>
+<summary><b>Module 8 — Subdomain Takeover</b></summary>
+<br>
+
+30 service fingerprints checked via CNAME matching + body verification:
+
+GitHub Pages · Heroku · Netlify · AWS S3 · AWS CloudFront · Azure · Fastly · Ghost · Tumblr · Shopify · Webflow · Surge.sh · Zendesk · Freshdesk · HubSpot · Intercom · Unbounce · Readme.io · Bitbucket · Squarespace · Strikingly · Fly.io · Render · Vercel · Firebase · WP Engine · Pantheon · Cargo · Kinsta · Acquia
+
+**Confirmed** = CNAME matches service + body fingerprint verified  
+**Possible** = CNAME matches service, body fingerprint inconclusive
+
+</details>
+
+<details>
+<summary><b>Module 9 — Risk Scoring</b></summary>
+<br>
+
+Calibrated scoring engine across all modules:
+
+| Grade | Level | Score | Triggers |
+|-------|-------|-------|---------|
+| A | CLEAN | 0–2 | No significant findings |
+| B | LOW | 3–9 | Minor misconfigs, SSH exposed |
+| C | MEDIUM | 10–24 | Missing email security, no WAF |
+| D | HIGH | 25–39 | Breach data, known CVEs, open RDP |
+| F | CRITICAL | 40+ | Confirmed takeover, active exploitation, credential leak |
+
+High-weight signals: confirmed subdomain takeover (+15/each), known CVE (+12/each), breach data (+10/source), RDP/VNC/Telnet exposed (+10), TOR exit node (+5).
+
+Low-weight signals: SSH exposed (+3), large subdomain count (+5), no WAF (+3), missing DMARC (+5).
+
+</details>
 
 ---
 
-## GRIMOIRE Integration
+## Configuration
 
-WRAITH-NET ships with a native GRIMOIRE v2+ module.
+Optional API keys stored in `~/.wraith-net/config.json`:
 
-### Auto-load into GRIMOIRE
-
-```bash
-# Option A — copy grimoire module file
-cp wraith_net/grimoire_module.py ~/Downloads/grimoire-v2/wraith_net_module.py
-
-# Option B — wire via GRIMOIRE's module loader (add to grimoire's modules list)
+```json
+{
+  "virustotal_api_key": "your_key",
+  "github_api_key":     "your_pat",
+  "shodan_api_key":     "your_key"
+}
 ```
 
-### Use inside GRIMOIRE interactive shell
+- **VirusTotal** — free at virustotal.com, 4 req/min
+- **GitHub PAT** — free, increases dorking rate limit from 10 to 5000 req/hr
+- **Shodan** — free at account.shodan.io
 
-```
-grimoire > wraith scan example.com
-grimoire > wraith quick example.com
-```
+All modules work without API keys via free fallbacks.
 
 ---
 
 ## Output
 
-Reports are saved to `~/.wraith-net/reports/` by default.
+Every scan generates 3 report formats in `~/.wraith-net/reports/`:
 
 ```
-wraith_example_com_20260322_143012.md    ← Markdown strike report
-wraith_example_com_20260322_143012.json  ← Machine-readable full results
-wraith_example_com_20260322_143012.html  ← Death Note themed HTML report
+wraith_target_com_20260522_120000.md    # markdown findings table
+wraith_target_com_20260522_120000.json  # full machine-readable data
+wraith_target_com_20260522_120000.html  # dark themed interactive dashboard
+```
+
+Re-render any saved scan:
+
+```bash
+wraith-net report ~/.wraith-net/reports/wraith_target_com_20260522_120000.json
 ```
 
 ---
 
-## Risk Scoring
-
-| Score | Label    |
-|-------|----------|
-| 50+   | CRITICAL |
-| 30–49 | HIGH     |
-| 15–29 | MEDIUM   |
-| 0–14  | LOW      |
-
-Scoring factors: sensitive ports, breach hits, known CVEs, subdomain count, WAF absence, CMS presence.
-
----
-
-## LightScan Integration
-
-If **LightScan v2.0 PHANTOM** is installed (`pip install -e ~/tools/network/lightscan`), WRAITH-NET will automatically delegate port scanning to it. Falls back to the built-in async scanner if not found.
-
----
-
-## File Structure
+## Architecture
 
 ```
-wraith-net/
-├── wraith_net/
-│   ├── __init__.py
-│   ├── __main__.py
-│   ├── cli.py                  ← Entry point
-│   ├── grimoire_module.py      ← GRIMOIRE integration
-│   ├── core/
-│   │   ├── config.py           ← Palette, API keys, constants
-│   │   └── engine.py           ← Orchestration pipeline
-│   ├── modules/
-│   │   ├── subdomain.py        ← Passive subdomain enum
-│   │   ├── portscan.py         ← Port/service discovery
-│   │   ├── techstack.py        ← Tech fingerprinting
-│   │   ├── breach.py           ← Breach/leak lookup
-│   │   ├── shodan_feed.py      ← Shodan + Censys intel
-│   │   └── reporter.py         ← MD/JSON/HTML report gen
-│   └── utils/
-│       ├── banner.py           ← Rich display + ASCII art
-│       └── helpers.py          ← HTTP, DNS, TCP utilities
-└── setup.py
+wraith_net/
+├── cli.py                  argument parser · subcommands
+├── core/
+│   ├── engine.py           10-module pipeline orchestrator
+│   └── config.py           constants · timeouts
+├── modules/
+│   ├── subdomain.py        6 passive sources + AXFR + brute force
+│   ├── portscan.py         async TCP scanner
+│   ├── techstack.py        HTTP fingerprinting · WAF · SSL
+│   ├── breach.py           HIBP · IntelX · LeakLookup
+│   ├── shodan_feed.py      Shodan · Censys · InternetDB
+│   ├── intel.py            ASN/BGP · reverse IP · CT · GitHub dorks
+│   ├── dns_security.py     SPF · DMARC · DKIM · DNSSEC · MX
+│   ├── takeover.py         30-service CNAME fingerprinting
+│   ├── risk_score.py       A–F calibrated scoring engine
+│   └── reporter.py         MD · JSON · HTML report generation
+└── utils/
+    └── helpers.py          HTTP · DNS · socket helpers
 ```
 
 ---
 
 ## Disclaimer
 
-WRAITH-NET is built for **authorized security assessments** — bug bounty, red team engagements, and penetration testing within legal scope. Scanning targets without permission violates §202a StGB (Germany) and equivalent laws worldwide. Always operate within authorized scope.
+For authorized security testing, bug bounty, and educational purposes only.  
+Always obtain written permission before scanning systems you do not own.
 
 ---
 
-*WRAITH-NET v1.0.0 — Developed by Light (Neok1ra)*
+<div align="center">
+<br>
+<i>WRAITH-NET v1.0.0 · Developer: Light (Neok1ra)</i>
+<br><br>
+
+[![GitHub](https://img.shields.io/badge/github.com%2Fne0k1r4-cc0000?style=flat-square&labelColor=0a0000&logo=github&logoColor=white)](https://github.com/ne0k1r4)
+
+</div>
