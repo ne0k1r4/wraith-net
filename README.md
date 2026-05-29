@@ -50,9 +50,3 @@ If you want Shodan/GitHub/VirusTotal modules active, drop your keys in `~/.wrait
   "shodan_api_key": "your_key"
 }
 ```
-
----
-
-## Dev Journal
-Check out [DEVELOPMENT_JOURNAL.md](DEVELOPMENT_JOURNAL.md) for build logs, bugs encountered (rate limits, blocking sockets), and how I worked around them.
-
