@@ -7,4 +7,5 @@ build/
 .env
 config.json
 *.log
-.wraith-net/
+reports/
+test_run.sh
