@@ -35,6 +35,8 @@ def http_get(url: str, headers: dict = None, timeout: int = 10) -> Optional[byte
 
 
 def http_get_json(url: str, headers: dict = None, timeout: int = 10) -> Optional[dict]:
+    # TODO: need a cleaner way to handle connection retries for crt.sh
+    # currently it just returns None when it throws 502/504
     data = http_get(url, headers=headers, timeout=timeout)
     if not data:
         return None

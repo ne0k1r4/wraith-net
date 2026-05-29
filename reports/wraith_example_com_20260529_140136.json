@@ -1,0 +1,172 @@
+{
+  "meta": {
+    "tool": "WRAITH-NET",
+    "version": "1.0.0",
+    "author": "Light (Neok1ra)",
+    "target": "example.com",
+    "date": "2026-05-29T14:01:36.880675",
+    "risk_score": 36.0,
+    "risk_label": "HIGH"
+  },
+  "findings": [
+    "\u26a0 Sensitive port exposed: 22/SSH",
+    "\ud83d\udd34 High-risk port exposed: 23/Telnet",
+    "\ud83d\udd34 High-risk port exposed: 3389/RDP",
+    "\ud83d\udd34 High-risk port exposed: 5900/VNC",
+    "\u26a0 Sensitive port exposed: 9200/Elasticsearch",
+    "\u2139 WAF detected: Cloudflare"
+  ],
+  "results": {
+    "subdomains": {
+      "subdomains": [
+        "20mail2.example.com",
+        "www.example.com"
+      ],
+      "count": 2,
+      "sources": {
+        "crt.sh": 0,
+        "HackerTarget": 1,
+        "AlienVault": 0,
+        "RapidDNS": 2,
+        "BufferOver": 0,
+        "ThreatCrowd": 0
+      },
+      "domain": "example.com",
+      "axfr_found": [],
+      "axfr_vulnerable": false,
+      "brute_found": []
+    },
+    "ports": {
+      "host": "example.com",
+      "ips": [
+        "2606:4700:10::6814:179a",
+        "104.20.23.154",
+        "2606:4700:10::ac42:93f3",
+        "172.66.147.243"
+      ],
+      "open_ports": [
+        {
+          "port": 21,
+          "service": "FTP",
+          "sensitive": false,
+          "banner": ""
+        },
+        {
+          "port": 22,
+          "service": "SSH",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 23,
+          "service": "Telnet",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 25,
+          "service": "SMTP",
+          "sensitive": false,
+          "banner": ""
+        },
+        {
+          "port": 53,
+          "service": "DNS",
+          "sensitive": false,
+          "banner": ""
+        },
+        {
+          "port": 139,
+          "service": "NetBIOS",
+          "sensitive": false,
+          "banner": ""
+        },
+        {
+          "port": 143,
+          "service": "IMAP",
+          "sensitive": false,
+          "banner": ""
+        },
+        {
+          "port": 3389,
+          "service": "RDP",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 5900,
+          "service": "VNC",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 9200,
+          "service": "Elasticsearch",
+          "sensitive": true,
+          "banner": ""
+        }
+      ],
+      "sensitive_ports": [
+        {
+          "port": 22,
+          "service": "SSH",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 23,
+          "service": "Telnet",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 3389,
+          "service": "RDP",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 5900,
+          "service": "VNC",
+          "sensitive": true,
+          "banner": ""
+        },
+        {
+          "port": 9200,
+          "service": "Elasticsearch",
+          "sensitive": true,
+          "banner": ""
+        }
+      ],
+      "source": "WRAITH-NET built-in",
+      "count": 10
+    },
+    "techstack": {
+      "target": "example.com",
+      "technologies": [
+        "Cloudflare"
+      ],
+      "versions": {},
+      "waf": "Cloudflare",
+      "ssl": {
+        "issuer": {
+          "countryName": "US",
+          "organizationName": "CLOUDFLARE, INC.",
+          "commonName": "Cloudflare TLS Issuing ECC CA 1"
+        },
+        "subject": {
+          "commonName": "example.com"
+        },
+        "expire": "Jul  1 21:24:46 2026 GMT",
+        "san": [
+          "example.com",
+          "*.example.com"
+        ],
+        "version": 3
+      },
+      "status_code": 200,
+      "server": "cloudflare",
+      "cms": null
+    }
+  }
+}

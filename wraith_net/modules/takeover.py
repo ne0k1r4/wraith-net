@@ -123,6 +123,7 @@ def run(target: str, subdomains: list = None, progress_cb=None) -> dict:
 
     if not subdomains:
         # Probe common subdomains
+        # FIXME: this wordlist is tiny, should pull from a local text file instead of hardcoding
         wordlist = [
             "www", "mail", "dev", "staging", "test", "api", "cdn", "static",
             "assets", "media", "app", "dashboard", "portal", "beta", "shop",
