@@ -37,13 +37,25 @@ CACHE_DIR    = DATA_DIR / "cache"
 for d in (DATA_DIR, REPORTS_DIR, CACHE_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
-# ── API Keys (env-first, fallback to None) ────────────────────────────────────
-SHODAN_API_KEY   = os.environ.get("SHODAN_API_KEY")
-CENSYS_API_ID    = os.environ.get("CENSYS_API_ID")
-CENSYS_API_SEC   = os.environ.get("CENSYS_API_SECRET")
-HIBP_API_KEY     = os.environ.get("HIBP_API_KEY")
-INTELX_API_KEY   = os.environ.get("INTELX_API_KEY")
-OTX_API_KEY      = os.environ.get("OTX_API_KEY")
+# ── Load config.json if present ───────────────────────────────────────────────
+import json
+_cfg = {}
+_cfg_file = DATA_DIR / "config.json"
+if _cfg_file.exists():
+    try:
+        _cfg = json.loads(_cfg_file.read_text())
+    except Exception:
+        pass
+
+# ── API Keys (config.json first, fallback to env) ─────────────────────────────
+SHODAN_API_KEY   = _cfg.get("shodan_api_key") or os.environ.get("SHODAN_API_KEY")
+CENSYS_API_ID    = _cfg.get("censys_api_id") or os.environ.get("CENSYS_API_ID")
+CENSYS_API_SEC   = _cfg.get("censys_api_secret") or os.environ.get("CENSYS_API_SECRET")
+HIBP_API_KEY     = _cfg.get("hibp_api_key") or os.environ.get("HIBP_API_KEY")
+INTELX_API_KEY   = _cfg.get("intelx_api_key") or os.environ.get("INTELX_API_KEY")
+OTX_API_KEY      = _cfg.get("otx_api_key") or os.environ.get("OTX_API_KEY")
+VIRUSTOTAL_API_KEY = _cfg.get("virustotal_api_key") or os.environ.get("VIRUSTOTAL_API_KEY")
+GITHUB_API_KEY   = _cfg.get("github_api_key") or os.environ.get("GITHUB_API_KEY")
 
 # ── Timeouts ──────────────────────────────────────────────────────────────────
 HTTP_TIMEOUT     = 10

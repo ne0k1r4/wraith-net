@@ -9,7 +9,7 @@ import urllib.request
 import urllib.error
 import json
 from wraith_net.utils.helpers import normalize_domain, rate_limit, http_get_json
-from wraith_net.core.config import HTTP_TIMEOUT
+from wraith_net.core.config import HTTP_TIMEOUT, VIRUSTOTAL_API_KEY, GITHUB_API_KEY
 
 
 # ── ASN / BGP Intelligence ────────────────────────────────────────────────────
@@ -267,8 +267,8 @@ def run(target: str, config: dict = None, progress_cb=None) -> dict:
     import urllib.parse
     domain = normalize_domain(target)
     cfg    = config or {}
-    vt_key = cfg.get("virustotal_api_key")
-    gh_key = cfg.get("github_api_key")
+    vt_key = cfg.get("virustotal_api_key") or VIRUSTOTAL_API_KEY
+    gh_key = cfg.get("github_api_key") or GITHUB_API_KEY
 
     result = {
         "domain":        domain,
