@@ -4,17 +4,6 @@ A lightweight attack surface recon tool written in pure Python. Passive OSINT su
 
 All results get saved as JSON, markdown tables, and a dark-themed HTML report.
 
-## Demo
-
-Testing it on `example.com`:
-
-### Terminal Output
-![CLI Scan](assets/cli_scan.png)
-
-### Self-Contained HTML Dashboard
-![HTML Dashboard](assets/dashboard.png)
-
----
 
 ## Setup & Run
 
