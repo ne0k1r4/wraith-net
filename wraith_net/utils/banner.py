@@ -11,6 +11,11 @@ from rich import box
 from wraith_net.core.config import S
 import datetime
 
+import time
+from rich.columns import Columns
+import sys
+import os
+
 console = Console()
 
 BANNER = r"""
@@ -27,9 +32,29 @@ AUTHOR  = "by Light (Neok1ra) — v1.0.0"
 
 
 def print_banner():
-    console.print(BANNER, style="bold #cc0000")
-    console.print(f"  {TAGLINE}", style="#7a5a4a")
-    console.print(f"  {AUTHOR}\n", style="#e8d5c4")
+    # If not running in a real interactive terminal session, print static banner to avoid messy logs
+    if not sys.stdout.isatty() or os.environ.get("TERM") == "dumb":
+        console.print(BANNER, style="bold #cc0000")
+        console.print(f"  {TAGLINE}", style="#7a5a4a")
+        console.print(f"  {AUTHOR}\n", style="#e8d5c4")
+        return
+
+    # Otherwise, play cool startup animations
+    banner_lines = BANNER.strip("\n").split("\n")
+    for line in banner_lines:
+        console.print(line, style="bold #cc0000")
+        time.sleep(0.03)
+    
+    tagline_text = f"  {TAGLINE}"
+    for char in tagline_text:
+        console.print(char, style="#7a5a4a", end="")
+        time.sleep(0.008)
+    console.print()
+    
+    author_text = f"  {AUTHOR}\n"
+    for char in author_text:
+        console.print(char, style="#e8d5c4", end="")
+        time.sleep(0.006)
 
 
 def section(title: str):
@@ -90,16 +115,41 @@ def risk_badge(score: float) -> str:
 
 def summary_panel(target: str, score: float, findings: dict):
     badge = risk_badge(score)
-    body = Text()
-    body.append(f"  Target  : ", style="bold #7a5a4a")
-    body.append(f"{target}\n", style="bold #e8d5c4")
-    body.append(f"  Risk    : ", style="bold #7a5a4a")
-    body.append(f"{score:.1f}  ", style="bold #ffffff")
+    
+    # Create structured key-value grid for metadata
+    grid = Table.grid(expand=True)
+    grid.add_column(ratio=1)
+    grid.add_column(ratio=2)
+    
+    grid.add_row("[#7a5a4a]Target Host[/#7a5a4a]", f"[bold #ffffff]{target}[/bold #ffffff]")
+    grid.add_row("[#7a5a4a]Risk Rating[/#7a5a4a]", f"{score:.1f} ({badge})")
+    grid.add_row("[#7a5a4a]Generated Reports[/#7a5a4a]", f"[#e8d5c4]HTML, JSON, Markdown[/#e8d5c4]")
+    
+    # Build list of key issues to render directly in the panel
+    issues_list = []
+    raw_findings = findings.get("findings", [])
+    if raw_findings:
+        for f in raw_findings[:8]:  # Limit to top 8 findings to prevent overflow
+            issues_list.append(f"• {f}")
+        if len(raw_findings) > 8:
+            issues_list.append(f"• ... and {len(raw_findings) - 8} more findings.")
+    else:
+        issues_list.append("No critical risk signals flagged.")
+        
+    issues_text = Text("\n".join(issues_list), style="#e8d5c4")
+
+    # Combine metadata grid and issues into panels
+    body_table = Table.grid(expand=True)
+    body_table.add_column()
+    body_table.add_row(grid)
+    body_table.add_row("\n[bold #cc0000]KEY RISK INDICATORS[/bold #cc0000]")
+    body_table.add_row(issues_text)
+
     console.print()
     console.print(Panel(
-        body,
-        title=f"[bold #cc0000]▸ WRAITH-NET REPORT — {target.upper()} ◂[/bold #cc0000]",
-        subtitle=f"Risk Score: {score:.1f} — {badge}",
+        body_table,
+        title=f"[bold #cc0000]▸ WRAITH-NET STRIKE SUMMARY — {target.upper()} ◂[/bold #cc0000]",
         border_style="#cc0000",
-        padding=(1, 4),
+        box=box.ROUNDED,
+        padding=(1, 3),
     ))
