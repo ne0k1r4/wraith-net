@@ -5,7 +5,7 @@ wraith_net/core/config.py — Configuration & constants
 import os
 from pathlib import Path
 
-# ── Palette ──────────────────────────────────────────────────────────────────
+# Theme colors
 PALETTE = {
     "bg":     "#0a0000",
     "red":    "#cc0000",
@@ -28,7 +28,7 @@ S = {
     "data":    "#e8d5c4",
 }
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# Path setup
 HOME         = Path.home()
 DATA_DIR     = HOME / ".wraith-net"
 REPORTS_DIR  = DATA_DIR / "reports"
@@ -37,7 +37,7 @@ CACHE_DIR    = DATA_DIR / "cache"
 for d in (DATA_DIR, REPORTS_DIR, CACHE_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
-# ── Load config.json if present ───────────────────────────────────────────────
+# Config file loader
 import json
 _cfg = {}
 _cfg_file = DATA_DIR / "config.json"
@@ -47,7 +47,7 @@ if _cfg_file.exists():
     except Exception:
         pass
 
-# ── API Keys (config.json first, fallback to env) ─────────────────────────────
+# API credentials configuration
 SHODAN_API_KEY   = _cfg.get("shodan_api_key") or os.environ.get("SHODAN_API_KEY")
 CENSYS_API_ID    = _cfg.get("censys_api_id") or os.environ.get("CENSYS_API_ID")
 CENSYS_API_SEC   = _cfg.get("censys_api_secret") or os.environ.get("CENSYS_API_SECRET")
@@ -57,19 +57,19 @@ OTX_API_KEY      = _cfg.get("otx_api_key") or os.environ.get("OTX_API_KEY")
 VIRUSTOTAL_API_KEY = _cfg.get("virustotal_api_key") or os.environ.get("VIRUSTOTAL_API_KEY")
 GITHUB_API_KEY   = _cfg.get("github_api_key") or os.environ.get("GITHUB_API_KEY")
 
-# ── Timeouts ──────────────────────────────────────────────────────────────────
+# Connection timeouts
 HTTP_TIMEOUT     = 10
 PORT_TIMEOUT     = 1.5
 MAX_THREADS      = 100
 
-# ── Common port list ──────────────────────────────────────────────────────────
+# Audited port definitions
 TOP_PORTS = [
     21, 22, 23, 25, 53, 80, 110, 111, 135, 139,
     143, 443, 445, 993, 995, 1723, 3306, 3389,
     5900, 8080, 8443, 8888, 9200, 27017
 ]
 
-# ── Tech fingerprint signatures ───────────────────────────────────────────────
+# Technology detection patterns
 TECH_SIGNATURES = {
     # Headers
     "headers": {
@@ -101,7 +101,7 @@ TECH_SIGNATURES = {
     },
 }
 
-# ── Risk scoring weights ──────────────────────────────────────────────────────
+# Heuristics weights configuration
 RISK_WEIGHTS = {
     "open_port":          1,
     "sensitive_port":     5,   # 22, 23, 3389, 5900

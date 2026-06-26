@@ -12,7 +12,7 @@ import time
 from typing import Optional
 
 
-# ── HTTP ──────────────────────────────────────────────────────────────────────
+# HTTP client wrappers
 
 _CTX = ssl.create_default_context()
 _CTX.check_hostname = False
@@ -62,7 +62,7 @@ def http_get_response(url: str, headers: dict = None, timeout: int = 10):
         return None
 
 
-# ── DNS ───────────────────────────────────────────────────────────────────────
+# DNS resolution logic
 
 def resolve_domain(domain: str) -> list[str]:
     try:
@@ -79,7 +79,7 @@ def reverse_dns(ip: str) -> Optional[str]:
         return None
 
 
-# ── Port probe ────────────────────────────────────────────────────────────────
+# TCP connection probing
 
 def tcp_probe(host: str, port: int, timeout: float = 1.5) -> bool:
     try:
@@ -102,7 +102,7 @@ def grab_banner(host: str, port: int, timeout: float = 2.0) -> Optional[str]:
         return None
 
 
-# ── Misc ──────────────────────────────────────────────────────────────────────
+# Helper methods
 
 def normalize_domain(target: str) -> str:
     """Strip scheme and trailing slashes."""
