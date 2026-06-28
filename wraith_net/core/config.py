@@ -5,27 +5,28 @@ wraith_net/core/config.py — Configuration & constants
 import os
 from pathlib import Path
 
-# Theme colors
+# Theme colors (Dracula Palette)
 PALETTE = {
-    "bg":     "#0a0000",
-    "red":    "#cc0000",
-    "cream":  "#e8d5c4",
-    "dim":    "#7a5a4a",
-    "white":  "#ffffff",
-    "green":  "#00cc44",
-    "yellow": "#ccaa00",
+    "bg":     "#282a36",
+    "purple": "#bd93f9",
+    "pink":   "#ff79c6",
+    "cyan":   "#8be9fd",
+    "dim":    "#6272a4",
+    "white":  "#f8f8f2",
+    "green":  "#50fa7b",
+    "yellow": "#f1fa8c",
 }
 
 # Rich style shortcuts
 S = {
-    "title":   "bold #cc0000",
-    "info":    "#e8d5c4",
-    "dim":     "#7a5a4a",
-    "ok":      "bold #00cc44",
-    "warn":    "bold #ccaa00",
-    "err":     "bold #cc0000",
-    "head":    "bold #ffffff",
-    "data":    "#e8d5c4",
+    "title":   "bold #bd93f9",  # Purple
+    "info":    "#f8f8f2",       # FG
+    "dim":     "#6272a4",       # Comment/Grey
+    "ok":      "bold #50fa7b",  # Green
+    "warn":    "bold #f1fa8c",  # Yellow
+    "err":     "bold #ff5555",  # Red
+    "head":    "bold #ff79c6",  # Pink
+    "data":    "#f8f8f2",
 }
 
 # Path setup
